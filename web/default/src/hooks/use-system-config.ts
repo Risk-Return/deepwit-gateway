@@ -25,7 +25,7 @@ import {
   DEFAULT_CURRENCY_CONFIG,
 } from '@/stores/system-config-store'
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
-import { applyFaviconToDom } from '@/lib/dom-utils'
+import { getBasePath } from '@/lib/base-path'
 
 interface UseSystemConfigOptions {
   /** Automatically fetch config from backend (use only in root component) */
@@ -61,6 +61,19 @@ function toNumber(value: unknown, fallback: number): number {
 /**
  * Map `/api/status` response data to our persisted system config structure
  */
+
+/**
+ * Prefix a path with the application base path if it starts with '/'
+ * and is not an external URL. E.g. '/logo.png' → '/gateway/logo.png'.
+ */
+function prefixBasePath(path: string): string {
+  if (!path || path.startsWith('http')) return path
+  if (!path.startsWith('/')) return path
+  const bp = getBasePath().replace(/\/$/, '')
+  if (bp && bp !== '') return bp + path
+  return path
+}
+
 export function mapStatusDataToConfig(
   data: StatusApiResponse['data'] | undefined
 ): Partial<SystemConfig> {
@@ -93,7 +106,7 @@ export function mapStatusDataToConfig(
 
   return {
     systemName: data.system_name || DEFAULT_SYSTEM_NAME,
-    logo: data.logo || DEFAULT_LOGO,
+    logo: prefixBasePath(data.logo || DEFAULT_LOGO),
     footerHtml: data.footer_html,
     demoSiteEnabled: data.demo_site_enabled,
     displayTokenStatEnabled: data.display_token_stat_enabled,
@@ -103,7 +116,7 @@ export function mapStatusDataToConfig(
 
 // Fetch system config from API
 async function fetchSystemConfig(): Promise<Partial<SystemConfig>> {
-  const response = await fetch('/api/status')
+  const response = await fetch(prefixBasePath('/api/status'))
   if (!response.ok) throw new Error('Failed to fetch status')
 
   const data: StatusApiResponse = await response.json()
@@ -181,7 +194,6 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
       logo,
       () => {
         setLoadedLogoUrl(logo)
-        applyFaviconToDom(logo)
       },
       () => {
         if (logo !== DEFAULT_LOGO) {

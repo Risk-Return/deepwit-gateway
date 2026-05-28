@@ -99,7 +99,7 @@ export const Route = createRootRouteWithContext<{
   beforeLoad: async ({ location }) => {
     const pathname = location?.pathname || ''
     const needsSetupCheck =
-      !setupStatusChecked && !pathname.startsWith('/setup')
+      !setupStatusChecked && !pathname.endsWith('/setup')
 
     // 用户信息已通过 auth-store 从 localStorage 恢复
     // 如果 auth.user 存在，说明用户已登录（有缓存的用户数据）

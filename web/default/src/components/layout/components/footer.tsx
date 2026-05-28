@@ -157,44 +157,44 @@ export function Footer(props: FooterProps) {
     demoSiteEnabled,
   } = useSystemConfig()
 
-  const displayLogo = systemLogo || props.logo || '/logo.png'
-  const displayName = systemName || props.name || 'New API'
+  const displayLogo = systemLogo || props.logo || '/company-logo.png'
+  const displayName = systemName || props.name || 'DeepWit AI'
   const isDemoSiteMode = Boolean(demoSiteEnabled)
   const currentYear = new Date().getFullYear()
 
   const fallbackColumns = useMemo<FooterColumnProps[]>(
     () => [
       {
-        title: t('footer.columns.about.title'),
-        links: [
-          {
-            text: t('footer.columns.about.links.aboutProject'),
-            href: 'https://docs.newapi.pro/wiki/project-introduction/',
-          },
-          {
-            text: t('footer.columns.about.links.contact'),
-            href: 'https://docs.newapi.pro/support/community-interaction/',
-          },
-          {
-            text: t('footer.columns.about.links.features'),
-            href: 'https://docs.newapi.pro/wiki/features-introduction/',
-          },
-        ],
-      },
-      {
         title: t('footer.columns.docs.title'),
         links: [
           {
             text: t('footer.columns.docs.links.quickStart'),
-            href: 'https://docs.newapi.pro/getting-started/',
-          },
-          {
-            text: t('footer.columns.docs.links.installation'),
-            href: 'https://docs.newapi.pro/installation/',
+            href: '/docs',
           },
           {
             text: t('footer.columns.docs.links.apiDocs'),
-            href: 'https://docs.newapi.pro/api/',
+            href: '/docs',
+          },
+          {
+            text: t('Code Agent Integration'),
+            href: '/docs',
+          },
+        ],
+      },
+      {
+        title: t('footer.columns.about.title'),
+        links: [
+          {
+            text: t('API Keys & Auth'),
+            href: '/docs',
+          },
+          {
+            text: t('Model Setup'),
+            href: '/docs',
+          },
+          {
+            text: t('FAQ'),
+            href: '/docs',
           },
         ],
       },
@@ -257,7 +257,7 @@ export function Footer(props: FooterProps) {
               <img
                 src={displayLogo}
                 alt={displayName}
-                className='size-7 rounded-lg object-contain'
+                className='size-7 object-contain'
               />
               <span className='text-sm font-semibold tracking-tight'>
                 {displayName}
@@ -292,12 +292,25 @@ export function Footer(props: FooterProps) {
         {/* Copyright + optional legal links inline on the left, project
             attribution on the right; wraps on narrow screens. */}
         <div className='border-border/30 mt-12 flex flex-col items-center justify-between gap-x-3 gap-y-2 border-t pt-6 sm:flex-row'>
-          <div className='text-muted-foreground/40 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:justify-start'>
-            <span>
-              &copy; {currentYear} {displayName}.{' '}
-              {props.copyright ?? t('footer.defaultCopyright')}
-            </span>
-            <LegalLinks leadingSeparator />
+          <div className='flex flex-col items-center gap-y-1 sm:items-start'>
+            <div className='text-muted-foreground/40 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:justify-start'>
+              <span>
+                &copy; {currentYear} {displayName}.{' '}
+                {props.copyright ?? t('footer.defaultCopyright')}
+              </span>
+              <LegalLinks leadingSeparator />
+            </div>
+            <div className='text-muted-foreground/30 flex flex-wrap items-center justify-center gap-x-3 text-xs sm:justify-start'>
+              <a
+                href='http://beian.miit.gov.cn/'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='hover:text-foreground/50 transition-colors'
+              >
+                蜀ICP备2026000758号
+              </a>
+              <span>成都市云枢智元科技有限责任公司</span>
+            </div>
           </div>
           <ProjectAttribution currentYear={currentYear} />
         </div>

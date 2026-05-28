@@ -20,6 +20,7 @@ import axios, { type AxiosRequestConfig } from 'axios'
 import { t } from 'i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
+import { getBasePath } from '@/lib/base-path'
 
 declare module 'axios' {
   export interface AxiosRequestConfig {
@@ -35,8 +36,8 @@ export type ApiRequestConfig = AxiosRequestConfig
 // Axios Instance Configuration
 // ============================================================================
 
-// Base URL: empty string for same-origin API requests
-const baseURL = ''
+// Base URL: derived from document meta/base element at request time (not module init)
+const baseURL = '/'
 
 // Create axios instance with default config
 export const api = axios.create({
@@ -45,6 +46,19 @@ export const api = axios.create({
   headers: {
     'Cache-Control': 'no-store', // Prevent caching
   },
+})
+
+// Prepend base path to all relative URLs at request time
+// This must be an interceptor because getBasePath() reads the DOM,
+// which isn't available during module initialization.
+api.interceptors.request.use((config) => {
+  if (config.url && !config.url.startsWith('http')) {
+    const bp = getBasePath()
+    if (bp && bp !== '/') {
+      config.url = bp.replace(/\/$/, '') + config.url
+    }
+  }
+  return config
 })
 
 // ============================================================================

@@ -202,7 +202,7 @@ export function PublicHeader(props: PublicHeaderProps) {
             >
               <div className='flex size-7 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
                 {loading ? (
-                  <Skeleton className='size-full rounded-lg' />
+                   <Skeleton className='size-full' />
                 ) : customLogo ? (
                   customLogo
                 ) : (
@@ -210,7 +210,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                     src={systemLogo}
                     loading={loading}
                     logoLoaded={logoLoaded}
-                    className='size-full rounded-lg object-contain'
+                     className='size-full object-contain'
                   />
                 )}
               </div>

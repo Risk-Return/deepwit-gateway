@@ -44,6 +44,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CopyButton } from '@/components/copy-button'
 import { sideDrawerContentClassName } from '@/components/drawer-layout'
 import { GroupBadge } from '@/components/group-badge'
+
+function formatVideoGenPrice(value: number | undefined): string {
+  if (value == null) return '-'
+  if (value === 0) return '0'
+  if (value < 0.0001) return value.toExponential(2)
+  return value.toFixed(4)
+}
 import { PublicLayout } from '@/components/layout'
 import { getPerfMetrics } from '@/features/performance-metrics/api'
 import {
@@ -472,6 +479,52 @@ function PriceSection(props: {
             </div>
           </div>
         )}
+      </section>
+    )
+  }
+
+  if (props.model.billing_mode === 'video_gen' && props.model.video_gen_pricing) {
+    const vg = props.model.video_gen_pricing
+    return (
+      <section>
+        <SectionTitle>{t('Video Generation Pricing')}</SectionTitle>
+        <p className='text-muted-foreground mb-3 text-xs'>
+          {t('Pricing per completion token. Resolution and video-input are auto-detected from the request.')}
+        </p>
+        <div className='grid grid-cols-2 gap-2'>
+          <div className='bg-muted/20 rounded-lg border p-3'>
+            <div className='text-muted-foreground text-xs'>
+              {t('720p / 480p · No video')}
+            </div>
+            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+              {formatVideoGenPrice(vg.low_res_no_video)}
+            </div>
+          </div>
+          <div className='bg-muted/20 rounded-lg border p-3'>
+            <div className='text-muted-foreground text-xs'>
+              {t('720p / 480p · With video')}
+            </div>
+            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+              {formatVideoGenPrice(vg.low_res_with_video)}
+            </div>
+          </div>
+          <div className='bg-muted/20 rounded-lg border p-3'>
+            <div className='text-muted-foreground text-xs'>
+              {t('1080p · No video')}
+            </div>
+            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+              {formatVideoGenPrice(vg.high_res_no_video)}
+            </div>
+          </div>
+          <div className='bg-muted/20 rounded-lg border p-3'>
+            <div className='text-muted-foreground text-xs'>
+              {t('1080p · With video')}
+            </div>
+            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+              {formatVideoGenPrice(vg.high_res_with_video)}
+            </div>
+          </div>
+        </div>
       </section>
     )
   }

@@ -429,6 +429,77 @@ function buildImageSample(lang: Lang, ctx: SampleContext): string {
   ].join('\n')
 }
 
+function buildVideoSample(lang: Lang, ctx: SampleContext): string {
+  const url = `${ctx.baseUrl}${ctx.endpointPath}`
+  const prompt = 'A calico cat playing piano on stage'
+
+  if (lang === 'curl') {
+    return [
+      `# Create video task`,
+      `curl ${url} \\`,
+      `  -H "Authorization: Bearer $API_KEY" \\`,
+      `  -F "model=${ctx.modelName}" \\`,
+      `  -F "prompt=${prompt}" \\`,
+      `  -F "seconds=8" \\`,
+      `  -F "size=1280x720"`,
+      '',
+      `# Check status`,
+      `curl ${url}/{video_id} \\`,
+      `  -H "Authorization: Bearer $API_KEY"`,
+      '',
+      `# Download video (when status=completed)`,
+      `curl ${url}/{video_id}/content \\`,
+      `  -H "Authorization: Bearer $API_KEY" \\`,
+      `  --output video.mp4`,
+    ].join('\n')
+  }
+  if (lang === 'python') {
+    return [
+      `import openai`,
+      '',
+      `client = openai.OpenAI(`,
+      `    api_key="YOUR_API_KEY",`,
+      `    base_url="${ctx.baseUrl}"`,
+      `)`,
+      '',
+      `video = client.videos.create(`,
+      `    model="${ctx.modelName}",`,
+      `    prompt="${prompt}",`,
+      `    seconds="8",`,
+      `    size="1280x720"`,
+      `)`,
+      '',
+      `print(f"Task ID: {video.id}")`,
+      `print(f"Status: {video.status}")`,
+      '',
+      `# Check status until completed, then download`,
+    ].join('\n')
+  }
+  if (lang === 'typescript' || lang === 'javascript') {
+    return [
+      `import OpenAI from "openai";`,
+      '',
+      `const client = new OpenAI({`,
+      `  apiKey: "YOUR_API_KEY",`,
+      `  baseURL: "${ctx.baseUrl}",`,
+      `});`,
+      '',
+      `const video = await client.videos.create({`,
+      `  model: "${ctx.modelName}",`,
+      `  prompt: "${prompt}",`,
+      `  seconds: "8",`,
+      `  size: "1280x720",`,
+      `});`,
+      '',
+      `console.log(\`Task ID: \${video.id}\`)`,
+      `console.log(\`Status: \${video.status}\`)`,
+      '',
+      `// Poll until completed, then download`,
+    ].join('\n')
+  }
+  return ''
+}
+
 function buildSample(
   lang: Lang,
   endpointType: string,
@@ -439,6 +510,7 @@ function buildSample(
   if (endpointType === 'embeddings' || endpointType === 'jina-rerank')
     return buildEmbeddingSample(lang, ctx)
   if (endpointType === 'image-generation') return buildImageSample(lang, ctx)
+  if (endpointType === 'openai-video') return buildVideoSample(lang, ctx)
   return buildChatSample(lang, ctx)
 }
 

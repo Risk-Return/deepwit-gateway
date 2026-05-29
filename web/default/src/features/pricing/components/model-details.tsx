@@ -23,6 +23,7 @@ import { ArrowLeft, Code2, HeartPulse, Info, Timer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
+import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -50,6 +51,25 @@ function formatVideoGenPrice(value: number | undefined): string {
   if (value === 0) return '0'
   if (value < 0.0001) return value.toExponential(2)
   return value.toFixed(4)
+}
+
+function formatVideoGenGroupPrice(
+  priceField: number | undefined,
+  groupRatio: number,
+  showRechargePrice: boolean,
+  priceRate: number,
+  usdExchangeRate: number
+): string {
+  if (priceField == null) return '-'
+  let price = priceField * groupRatio
+  if (showRechargePrice) {
+    price = (price * priceRate) / usdExchangeRate
+  }
+  return formatBillingCurrencyFromUSD(price, {
+    digitsLarge: 4,
+    digitsSmall: 6,
+    abbreviate: false,
+  })
 }
 import { PublicLayout } from '@/components/layout'
 import { getPerfMetrics } from '@/features/performance-metrics/api'
@@ -428,46 +448,67 @@ function PriceSection(props: {
           </div>
         </section>
       )
+    }
   }
 
   if (props.model.billing_mode === 'video_gen') {
+    if (props.model.video_gen_pricing) {
+      const vg = props.model.video_gen_pricing
+      return (
+        <section>
+          <SectionTitle>{t('Video Generation Pricing')}</SectionTitle>
+          <p className='text-muted-foreground mb-3 text-xs'>
+            {t('Pricing per completion token. Resolution and video-input are auto-detected from the request.')}
+          </p>
+          <div className='grid grid-cols-2 gap-2'>
+            <div className='bg-muted/20 rounded-lg border p-3'>
+              <div className='text-muted-foreground text-xs'>
+                {t('720p / 480p · No video')}
+              </div>
+              <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+                {formatVideoGenPrice(vg.low_res_no_video)}
+              </div>
+            </div>
+            <div className='bg-muted/20 rounded-lg border p-3'>
+              <div className='text-muted-foreground text-xs'>
+                {t('720p / 480p · With video')}
+              </div>
+              <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+                {formatVideoGenPrice(vg.low_res_with_video)}
+              </div>
+            </div>
+            <div className='bg-muted/20 rounded-lg border p-3'>
+              <div className='text-muted-foreground text-xs'>
+                {t('1080p · No video')}
+              </div>
+              <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+                {formatVideoGenPrice(vg.high_res_no_video)}
+              </div>
+            </div>
+            <div className='bg-muted/20 rounded-lg border p-3'>
+              <div className='text-muted-foreground text-xs'>
+                {t('1080p · With video')}
+              </div>
+              <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+                {formatVideoGenPrice(vg.high_res_with_video)}
+              </div>
+            </div>
+          </div>
+        </section>
+      )
+    }
     return (
       <section>
-        <SectionTitle>{t('Pricing by Group')}</SectionTitle>
-        <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
-        <div className='-mx-4 overflow-x-auto sm:mx-0'>
-          <Table className='text-sm'>
-            <TableHeader>
-              <TableRow className='hover:bg-transparent'>
-                <TableHead className={thClass}>{t('Group')}</TableHead>
-                <TableHead className={thClass}>{t('Multiplier')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {availableGroups.map((group) => {
-                const ratio = props.groupRatio[group] || 1
-                return (
-                  <TableRow key={group}>
-                    <TableCell className='py-2.5'>
-                      <GroupBadge label={group} ratio={ratio} />
-                    </TableCell>
-                    <TableCell className='py-2.5 text-right font-mono'>
-                      ×{ratio}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
-        <p className='text-muted-foreground/40 mt-1.5 text-[10px]'>
-          {t('Video generation pricing is per completion token. Final cost = completion_tokens × price_factor × group_multiplier.')}
+        <SectionTitle>{t('Base Price')}</SectionTitle>
+        <p className='text-muted-foreground text-sm'>
+          {t('Video generation pricing is not configured for this model.')}
         </p>
       </section>
     )
   }
 
-  return (
+  if (dynamicSummary) {
+    return (
       <section>
         <SectionTitle>{t('Base Price')}</SectionTitle>
         {dynamicSummary.primaryEntries.length > 0 ? (
@@ -516,52 +557,6 @@ function PriceSection(props: {
             </div>
           </div>
         )}
-      </section>
-    )
-  }
-
-  if (props.model.billing_mode === 'video_gen' && props.model.video_gen_pricing) {
-    const vg = props.model.video_gen_pricing
-    return (
-      <section>
-        <SectionTitle>{t('Video Generation Pricing')}</SectionTitle>
-        <p className='text-muted-foreground mb-3 text-xs'>
-          {t('Pricing per completion token. Resolution and video-input are auto-detected from the request.')}
-        </p>
-        <div className='grid grid-cols-2 gap-2'>
-          <div className='bg-muted/20 rounded-lg border p-3'>
-            <div className='text-muted-foreground text-xs'>
-              {t('720p / 480p · No video')}
-            </div>
-            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
-              {formatVideoGenPrice(vg.low_res_no_video)}
-            </div>
-          </div>
-          <div className='bg-muted/20 rounded-lg border p-3'>
-            <div className='text-muted-foreground text-xs'>
-              {t('720p / 480p · With video')}
-            </div>
-            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
-              {formatVideoGenPrice(vg.low_res_with_video)}
-            </div>
-          </div>
-          <div className='bg-muted/20 rounded-lg border p-3'>
-            <div className='text-muted-foreground text-xs'>
-              {t('1080p · No video')}
-            </div>
-            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
-              {formatVideoGenPrice(vg.high_res_no_video)}
-            </div>
-          </div>
-          <div className='bg-muted/20 rounded-lg border p-3'>
-            <div className='text-muted-foreground text-xs'>
-              {t('1080p · With video')}
-            </div>
-            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
-              {formatVideoGenPrice(vg.high_res_with_video)}
-            </div>
-          </div>
-        </div>
       </section>
     )
   }
@@ -736,6 +731,7 @@ function GroupPricingSection(props: {
     'text-muted-foreground py-2 text-[10px] font-medium tracking-wider uppercase'
 
   if (props.model.billing_mode === 'video_gen') {
+    const vg = props.model.video_gen_pricing
     return (
       <section>
         <SectionTitle>{t('Pricing by Group')}</SectionTitle>
@@ -746,6 +742,10 @@ function GroupPricingSection(props: {
               <TableRow className='hover:bg-transparent'>
                 <TableHead className={thClass}>{t('Group')}</TableHead>
                 <TableHead className={`${thClass} text-right`}>{t('Multiplier')}</TableHead>
+                <TableHead className={`${thClass} text-right`}>{t('720p / 480p · No video')}</TableHead>
+                <TableHead className={`${thClass} text-right`}>{t('720p / 480p · With video')}</TableHead>
+                <TableHead className={`${thClass} text-right`}>{t('1080p · No video')}</TableHead>
+                <TableHead className={`${thClass} text-right`}>{t('1080p · With video')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -758,6 +758,42 @@ function GroupPricingSection(props: {
                     </TableCell>
                     <TableCell className='py-2.5 text-right font-mono'>
                       ×{ratio}
+                    </TableCell>
+                    <TableCell className='py-2.5 text-right font-mono'>
+                      {formatVideoGenGroupPrice(
+                        vg?.low_res_no_video,
+                        ratio,
+                        showRechargePrice,
+                        props.priceRate,
+                        props.usdExchangeRate
+                      )}
+                    </TableCell>
+                    <TableCell className='py-2.5 text-right font-mono'>
+                      {formatVideoGenGroupPrice(
+                        vg?.low_res_with_video,
+                        ratio,
+                        showRechargePrice,
+                        props.priceRate,
+                        props.usdExchangeRate
+                      )}
+                    </TableCell>
+                    <TableCell className='py-2.5 text-right font-mono'>
+                      {formatVideoGenGroupPrice(
+                        vg?.high_res_no_video,
+                        ratio,
+                        showRechargePrice,
+                        props.priceRate,
+                        props.usdExchangeRate
+                      )}
+                    </TableCell>
+                    <TableCell className='py-2.5 text-right font-mono'>
+                      {formatVideoGenGroupPrice(
+                        vg?.high_res_with_video,
+                        ratio,
+                        showRechargePrice,
+                        props.priceRate,
+                        props.usdExchangeRate
+                      )}
                     </TableCell>
                   </TableRow>
                 )

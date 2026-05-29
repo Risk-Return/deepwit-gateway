@@ -744,7 +744,7 @@ const VIDEO_PARAMS: SupportedParameter[] = [
   {
     name: 'model',
     type: 'string',
-    descriptionKey: 'Video model ID, e.g. sora-2, sora-2-pro',
+    descriptionKey: 'Video model ID, e.g. sora-2, sora-2-pro, doubao-seedance-2-0-250828',
   },
   {
     name: 'seconds',
@@ -758,12 +758,56 @@ const VIDEO_PARAMS: SupportedParameter[] = [
     type: 'string',
     range: '720x1280 | 1280x720 | 1024x1792 | 1792x1024',
     defaultValue: '720x1280',
-    descriptionKey: 'Output resolution',
+    descriptionKey: 'Output resolution (pixel dimensions)',
+  },
+  {
+    name: 'resolution',
+    type: 'enum',
+    enumValues: ['480p', '720p', '1080p'],
+    defaultValue: '720p',
+    descriptionKey: 'Output resolution label (Seedance / advanced providers)',
+  },
+  {
+    name: 'ratio',
+    type: 'enum',
+    enumValues: ['16:9', '4:3', '1:1', '3:4', '9:16', '21:9', 'adaptive'],
+    defaultValue: '16:9',
+    descriptionKey: 'Aspect ratio of the generated video',
+  },
+  {
+    name: 'duration',
+    type: 'integer',
+    range: '4 ~ 15 or -1 (auto)',
+    defaultValue: 5,
+    descriptionKey: 'Video duration in seconds; use -1 for auto',
+  },
+  {
+    name: 'generate_audio',
+    type: 'boolean',
+    defaultValue: true,
+    descriptionKey: 'Whether to generate synchronized audio (Seedance 2.0)',
+  },
+  {
+    name: 'callback_url',
+    type: 'string',
+    descriptionKey: 'Webhook URL that receives task status notifications',
+  },
+  {
+    name: 'priority',
+    type: 'integer',
+    range: '0 ~ 9',
+    defaultValue: 0,
+    descriptionKey: 'Queue processing priority (higher = sooner)',
   },
   {
     name: 'input_reference',
     type: 'object',
-    descriptionKey: 'Reference image (image_url or file_id) for image-to-video generation',
+    descriptionKey: 'Reference image or video (image_url / video_url) for img2video / video2video generation',
+  },
+  {
+    name: 'content',
+    type: 'array',
+    descriptionKey: 'Array of text, image_url, video_url, or audio_url objects (Seedance multimodal input)',
   },
 ]
 
@@ -776,6 +820,9 @@ type ApiCategory = 'reasoning' | 'embedding' | 'image' | 'video' | 'chat'
  * need to distinguish them so the request-parameter table is accurate.
  */
 function apiCategoryOf(model: PricingModel): ApiCategory {
+  if (model.billing_mode === 'video_gen') return 'video'
+  const endpointTypes = model.supported_endpoint_types || []
+  if (endpointTypes.includes('openai-video')) return 'video'
   const profile = PROFILE_BY_NAME(model.model_name)
   if (profile === 'embedding' || profile === 'reasoning') return profile
   if (profile === 'image') {

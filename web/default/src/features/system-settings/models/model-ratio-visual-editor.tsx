@@ -78,6 +78,7 @@ type ModelRatioVisualEditorProps = {
   audioCompletionRatio: string
   billingMode: string
   billingExpr: string
+  videoGenPricing: string
   onChange: (field: string, value: string) => void
 }
 
@@ -205,6 +206,7 @@ export const ModelRatioVisualEditor = memo(
     audioCompletionRatio,
     billingMode,
     billingExpr,
+    videoGenPricing,
     onChange,
   }: ModelRatioVisualEditorProps) {
     const { t } = useTranslation()
@@ -789,6 +791,26 @@ export const ModelRatioVisualEditor = memo(
             setIfPresent(imageMap, name, data.imageRatio)
             setIfPresent(audioMap, name, data.audioRatio)
             setIfPresent(audioCompletionMap, name, data.audioCompletionRatio)
+          } else if (data.billingMode === 'video_gen') {
+            billingModeMap[name] = 'video_gen'
+            // Build video gen pricing config
+            const vgPricing: Record<string, number> = {}
+            const setVG = (key: string, val: string | undefined) => {
+              if (val) {
+                const parsed = parseFloat(val)
+                if (Number.isFinite(parsed)) vgPricing[key] = parsed
+              }
+            }
+            setVG('low_res_no_video', data.lowResNoVideo)
+            setVG('low_res_with_video', data.lowResWithVideo)
+            setVG('high_res_no_video', data.highResNoVideo)
+            setVG('high_res_with_video', data.highResWithVideo)
+            // Update video_gen_pricing
+            const currentVGP = safeJsonParse<Record<string, Record<string, number>>>(videoGenPricing || '{}', { fallback: {}, silent: true })
+            currentVGP[name] = vgPricing
+            onChange('video_gen_pricing', JSON.stringify(currentVGP, null, 2))
+            // Set a placeholder ratio so the model appears in listing
+            ratioMap[name] = 1
           } else if (data.price && data.price !== '') {
             setIfPresent(priceMap, name, data.price)
           } else {

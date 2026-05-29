@@ -116,6 +116,10 @@ export type ModelRatioData = {
   billingMode?: PricingMode
   billingExpr?: string
   requestRuleExpr?: string
+  lowResNoVideo?: string
+  lowResWithVideo?: string
+  highResNoVideo?: string
+  highResWithVideo?: string
 }
 
 type ModelPricingSheetProps = {
@@ -439,6 +443,11 @@ export function ModelPricingEditorPanel({
   const [billingExpr, setBillingExpr] = useState('')
   const [requestRuleExpr, setRequestRuleExpr] = useState('')
   const [previewOpen, setPreviewOpen] = useState(true)
+  // Video gen pricing state
+  const [lowResNoVideo, setLowResNoVideo] = useState('')
+  const [lowResWithVideo, setLowResWithVideo] = useState('')
+  const [highResNoVideo, setHighResNoVideo] = useState('')
+  const [highResWithVideo, setHighResWithVideo] = useState('')
   const isEditMode = !!editData
 
   const form = useForm<ModelPricingFormValues>({
@@ -736,6 +745,14 @@ export function ModelPricingEditorPanel({
       data.requestRuleExpr = requestRuleExpr
     }
 
+    if (pricingMode === 'video_gen') {
+      data.billingMode = 'video_gen'
+      data.lowResNoVideo = lowResNoVideo
+      data.lowResWithVideo = lowResWithVideo
+      data.highResNoVideo = highResNoVideo
+      data.highResWithVideo = highResWithVideo
+    }
+
     onSave(data)
     form.reset()
     onCancel?.()
@@ -928,13 +945,8 @@ export function ModelPricingEditorPanel({
                           {t('720p / 480p · No video input')}
                         </label>
                         <PriceInput
-                          value={String(values.lowResNoVideo ?? '')}
-                          onChange={(v) =>
-                            setValues((prev) => ({
-                              ...prev,
-                              lowResNoVideo: v,
-                            }))
-                          }
+                          value={lowResNoVideo}
+                          onChange={setLowResNoVideo}
                           placeholder='0.002'
                         />
                       </div>
@@ -943,13 +955,8 @@ export function ModelPricingEditorPanel({
                           {t('720p / 480p · With video input')}
                         </label>
                         <PriceInput
-                          value={String(values.lowResWithVideo ?? '')}
-                          onChange={(v) =>
-                            setValues((prev) => ({
-                              ...prev,
-                              lowResWithVideo: v,
-                            }))
-                          }
+                          value={lowResWithVideo}
+                          onChange={setLowResWithVideo}
                           placeholder='0.003'
                         />
                       </div>
@@ -958,13 +965,8 @@ export function ModelPricingEditorPanel({
                           {t('1080p · No video input')}
                         </label>
                         <PriceInput
-                          value={String(values.highResNoVideo ?? '')}
-                          onChange={(v) =>
-                            setValues((prev) => ({
-                              ...prev,
-                              highResNoVideo: v,
-                            }))
-                          }
+                          value={highResNoVideo}
+                          onChange={setHighResNoVideo}
                           placeholder='0.005'
                         />
                       </div>
@@ -973,13 +975,8 @@ export function ModelPricingEditorPanel({
                           {t('1080p · With video input')}
                         </label>
                         <PriceInput
-                          value={String(values.highResWithVideo ?? '')}
-                          onChange={(v) =>
-                            setValues((prev) => ({
-                              ...prev,
-                              highResWithVideo: v,
-                            }))
-                          }
+                          value={highResWithVideo}
+                          onChange={setHighResWithVideo}
                           placeholder='0.007'
                         />
                       </div>

@@ -330,6 +330,32 @@ function buildPreviewRows(
     ]
   }
 
+  if (mode === 'video_gen') {
+    return [
+      { key: 'mode', label: 'BillingMode', value: 'video_gen' },
+      {
+        key: 'vg_720_no_vid',
+        label: t('720p/480p · No video'),
+        value: values.lowResNoVideo || t('Empty'),
+      },
+      {
+        key: 'vg_720_with_vid',
+        label: t('720p/480p · With video'),
+        value: values.lowResWithVideo || t('Empty'),
+      },
+      {
+        key: 'vg_1080_no_vid',
+        label: t('1080p · No video'),
+        value: values.highResNoVideo || t('Empty'),
+      },
+      {
+        key: 'vg_1080_with_vid',
+        label: t('1080p · With video'),
+        value: values.highResWithVideo || t('Empty'),
+      },
+    ]
+  }
+
   return [
     {
       key: 'inputPrice',
@@ -483,12 +509,18 @@ export function ModelPricingEditorPanel({
       setPricingMode(
         editData.billingMode === 'tiered_expr'
           ? 'tiered_expr'
-          : editData.price
-            ? 'per-request'
-            : 'per-token'
+          : editData.billingMode === 'video_gen'
+            ? 'video_gen'
+            : editData.price
+              ? 'per-request'
+              : 'per-token'
       )
       setBillingExpr(editData.billingExpr || '')
       setRequestRuleExpr(editData.requestRuleExpr || '')
+      setLowResNoVideo(editData.lowResNoVideo || '')
+      setLowResWithVideo(editData.lowResWithVideo || '')
+      setHighResNoVideo(editData.highResNoVideo || '')
+      setHighResWithVideo(editData.highResWithVideo || '')
     } else {
       form.reset({
         name: '',
@@ -504,6 +536,10 @@ export function ModelPricingEditorPanel({
       setPricingMode('per-token')
       setBillingExpr('')
       setRequestRuleExpr('')
+      setLowResNoVideo('')
+      setLowResWithVideo('')
+      setHighResNoVideo('')
+      setHighResWithVideo('')
     }
 
     setPromptPrice(nextLaneState.promptPrice)

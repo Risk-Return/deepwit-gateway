@@ -34,6 +34,13 @@ import { formatPrice, formatRequestPrice } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
 import { ModelPerfBadge, type ModelPerfBadgeData } from './model-perf-badge'
 
+function formatVideoGenPrice(value: number | undefined): string {
+  if (value == null) return '-'
+  if (value === 0) return '0'
+  if (value < 0.0001) return value.toExponential(2)
+  return value.toFixed(4)
+}
+
 export interface ModelCardProps {
   model: PricingModel
   onClick: () => void
@@ -141,12 +148,40 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                   </span>
                 )
               ) : isVideoGenPricing ? (
-                <span className='text-muted-foreground whitespace-nowrap text-xs'>
-                  {t('Video Generation')}{' '}
-                  <span className='text-foreground font-medium'>
-                    {t('per token')}
+                <div className='flex flex-col gap-0.5'>
+                  <span className='text-foreground font-medium text-xs'>
+                    {t('Video Generation')}
                   </span>
-                </span>
+                  {props.model.video_gen_pricing ? (
+                    <div className='text-muted-foreground text-[11px] leading-snug'>
+                      <span className='inline-flex items-center gap-1'>
+                        <span className='text-foreground/60'>{t('720p')}</span>
+                        <span className='font-mono text-foreground/80'>
+                          {formatVideoGenPrice(props.model.video_gen_pricing.low_res_no_video)}
+                        </span>
+                        <span className='text-muted-foreground/50'>/</span>
+                        <span className='font-mono text-foreground/80'>
+                          {formatVideoGenPrice(props.model.video_gen_pricing.low_res_with_video)}
+                        </span>
+                        <span className='text-foreground/60'>{t('1080p')}</span>
+                        <span className='font-mono text-foreground/80'>
+                          {formatVideoGenPrice(props.model.video_gen_pricing.high_res_no_video)}
+                        </span>
+                        <span className='text-muted-foreground/50'>/</span>
+                        <span className='font-mono text-foreground/80'>
+                          {formatVideoGenPrice(props.model.video_gen_pricing.high_res_with_video)}
+                        </span>
+                      </span>
+                      <span className='text-muted-foreground/50 mt-0.5 block'>
+                        {t('per completion token · no video / with video')}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className='text-muted-foreground text-[11px]'>
+                      {t('per completion token')}
+                    </span>
+                  )}
+                </div>
               ) : isTokenBased ? (
                 <>
                   <span className='text-muted-foreground whitespace-nowrap'>

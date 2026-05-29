@@ -36,6 +36,7 @@ type Pricing struct {
 	BillingMode            string                  `json:"billing_mode,omitempty"`
 	BillingExpr            string                  `json:"billing_expr,omitempty"`
 	PricingVersion         string                  `json:"pricing_version,omitempty"`
+	VideoGenPricing        *billing_setting.VideoGenPriceConfig `json:"video_gen_pricing,omitempty"`
 }
 
 type PricingVendor struct {
@@ -338,6 +339,9 @@ func updatePricing() {
 			}
 		} else if billingMode == billing_setting.BillingModeVideoGen {
 			pricing.BillingMode = billingMode
+			if cfg := billing_setting.GetVideoGenPrice(model); cfg != nil {
+				pricing.VideoGenPricing = cfg
+			}
 		}
 		pricingMap = append(pricingMap, pricing)
 	}

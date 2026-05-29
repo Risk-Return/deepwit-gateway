@@ -55,6 +55,13 @@ export type PricingModel = {
   billing_expr?: string
   /** Pricing version returned by backend, useful for cache busting */
   pricing_version?: string
+  /** Video generation pricing config (per completion_token rates) */
+  video_gen_pricing?: {
+    low_res_no_video: number
+    low_res_with_video: number
+    high_res_no_video: number
+    high_res_with_video: number
+  }
   /**
    * Optional model metadata fields. These are not yet returned by the backend
    * and are populated client-side from {@link inferModelMetadata}.

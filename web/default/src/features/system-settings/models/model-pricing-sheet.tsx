@@ -84,13 +84,17 @@ const createModelPricingSchema = (t: (key: string) => string) =>
     imageRatio: z.string().optional(),
     audioRatio: z.string().optional(),
     audioCompletionRatio: z.string().optional(),
+    lowResNoVideo: z.string().optional(),
+    lowResWithVideo: z.string().optional(),
+    highResNoVideo: z.string().optional(),
+    highResWithVideo: z.string().optional(),
   })
 
 type ModelPricingFormValues = z.infer<
   ReturnType<typeof createModelPricingSchema>
 >
 
-type PricingMode = 'per-token' | 'per-request' | 'tiered_expr'
+type PricingMode = 'per-token' | 'per-request' | 'tiered_expr' | 'video_gen'
 type LaneKey =
   | 'completion'
   | 'cache'
@@ -276,6 +280,7 @@ function createInitialLaneState(data?: ModelRatioData | null) {
 function getModeLabel(mode: PricingMode) {
   if (mode === 'per-request') return 'Per-request'
   if (mode === 'tiered_expr') return 'Expression'
+  if (mode === 'video_gen') return 'Video Gen'
   return 'Per-token'
 }
 
@@ -284,6 +289,7 @@ function getModeBadgeVariant(
 ): 'default' | 'secondary' | 'outline' {
   if (mode === 'per-request') return 'secondary'
   if (mode === 'tiered_expr') return 'default'
+  if (mode === 'video_gen') return 'secondary'
   return 'outline'
 }
 
@@ -803,13 +809,16 @@ export function ModelPricingEditorPanel({
               />
 
               <Tabs value={pricingMode} onValueChange={handleModeChange}>
-                <TabsList className='grid w-full grid-cols-3'>
+                <TabsList className='grid w-full grid-cols-4'>
                   <TabsTrigger value='per-token'>{t('Per-token')}</TabsTrigger>
                   <TabsTrigger value='per-request'>
                     {t('Per-request')}
                   </TabsTrigger>
                   <TabsTrigger value='tiered_expr'>
                     {t('Expression')}
+                  </TabsTrigger>
+                  <TabsTrigger value='video_gen'>
+                    {t('Video Gen')}
                   </TabsTrigger>
                 </TabsList>
 
@@ -906,6 +915,81 @@ export function ModelPricingEditorPanel({
                     onBillingExprChange={setBillingExpr}
                     onRequestRuleExprChange={setRequestRuleExpr}
                   />
+                </TabsContent>
+
+                <TabsContent value='video_gen' className='flex flex-col gap-5'>
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel>{t('Price per token')}</FieldLabel>
+                    </Field>
+                    <div className='grid grid-cols-2 gap-4'>
+                      <div className='space-y-1.5'>
+                        <label className='text-xs text-muted-foreground'>
+                          {t('720p / 480p · No video input')}
+                        </label>
+                        <PriceInput
+                          value={String(values.lowResNoVideo ?? '')}
+                          onChange={(v) =>
+                            setValues((prev) => ({
+                              ...prev,
+                              lowResNoVideo: v,
+                            }))
+                          }
+                          placeholder='0.002'
+                        />
+                      </div>
+                      <div className='space-y-1.5'>
+                        <label className='text-xs text-muted-foreground'>
+                          {t('720p / 480p · With video input')}
+                        </label>
+                        <PriceInput
+                          value={String(values.lowResWithVideo ?? '')}
+                          onChange={(v) =>
+                            setValues((prev) => ({
+                              ...prev,
+                              lowResWithVideo: v,
+                            }))
+                          }
+                          placeholder='0.003'
+                        />
+                      </div>
+                      <div className='space-y-1.5'>
+                        <label className='text-xs text-muted-foreground'>
+                          {t('1080p · No video input')}
+                        </label>
+                        <PriceInput
+                          value={String(values.highResNoVideo ?? '')}
+                          onChange={(v) =>
+                            setValues((prev) => ({
+                              ...prev,
+                              highResNoVideo: v,
+                            }))
+                          }
+                          placeholder='0.005'
+                        />
+                      </div>
+                      <div className='space-y-1.5'>
+                        <label className='text-xs text-muted-foreground'>
+                          {t('1080p · With video input')}
+                        </label>
+                        <PriceInput
+                          value={String(values.highResWithVideo ?? '')}
+                          onChange={(v) =>
+                            setValues((prev) => ({
+                              ...prev,
+                              highResWithVideo: v,
+                            }))
+                          }
+                          placeholder='0.007'
+                        />
+                      </div>
+                    </div>
+                    <p className='text-xs text-muted-foreground/70 mt-1'>
+                      {t(
+                        'Billing formula: completion_tokens × price_factor. Resolution and video-input are auto-detected from the request.'
+                      )}
+                    </p>
+                  </FieldGroup>
                 </TabsContent>
               </Tabs>
 

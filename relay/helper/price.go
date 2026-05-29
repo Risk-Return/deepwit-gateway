@@ -74,6 +74,11 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		return modelPriceHelperTiered(c, info, promptTokens, meta, groupRatioInfo)
 	}
 
+	// Check if this model uses video_gen billing
+	if billing_setting.GetBillingMode(info.OriginModelName) == billing_setting.BillingModeVideoGen {
+		return modelPriceHelperVideoGen(c, info, groupRatioInfo)
+	}
+
 	var preConsumedQuota int
 	var modelRatio float64
 	var completionRatio float64
@@ -303,4 +308,86 @@ func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, promptT
 
 	info.PriceData = priceData
 	return priceData, nil
+}
+
+// modelPriceHelperVideoGen handles pre-consume for video_gen billing mode.
+// Uses the conservative (maximum) price factor to estimate cost.
+// Actual settlement will use the exact completion_tokens from the response.
+func modelPriceHelperVideoGen(c *gin.Context, info *relaycommon.RelayInfo, groupRatioInfo types.GroupRatioInfo) (types.PriceData, error) {
+	cfg := billing_setting.GetVideoGenPrice(info.OriginModelName)
+	if cfg == nil {
+		return types.PriceData{}, modelPriceNotConfiguredError(info.OriginModelName, info.UserId)
+	}
+
+	// Parse request body to determine resolution and video-input status
+	highRes, hasVideo := parseVideoGenRequest(c)
+
+	// Conservative pre-consume: use the max price factor
+	maxPrice := cfg.Max()
+	// Estimate tokens based on video duration (default ~5s)
+	estimatedTokens := 25000
+
+	preConsumedQuota := int(float64(estimatedTokens) * maxPrice * groupRatioInfo.GroupRatio)
+	if preConsumedQuota < 1 {
+		preConsumedQuota = 1
+	}
+
+	priceData := types.PriceData{
+		GroupRatioInfo:    groupRatioInfo,
+		QuotaToPreConsume: preConsumedQuota,
+		VideoGenHighRes:   highRes,
+		VideoGenHasVideo:  hasVideo,
+	}
+
+	info.PriceData = priceData
+	return priceData, nil
+}
+
+// parseVideoGenRequest reads the raw request body to detect resolution tier and video input.
+func parseVideoGenRequest(c *gin.Context) (highRes bool, hasVideo bool) {
+	storage, err := common.GetBodyStorage(c)
+	if err != nil {
+		return false, false
+	}
+	data, err := storage.Bytes()
+	if err != nil || len(data) == 0 {
+		return false, false
+	}
+
+	var req struct {
+		Resolution     string `json:"resolution"`
+		Size           string `json:"size"`
+		InputReference *struct {
+			VideoURL string `json:"video_url"`
+		} `json:"input_reference"`
+		Content []struct {
+			Type string `json:"type"`
+		} `json:"content"`
+	}
+
+	if err := common.Unmarshal(data, &req); err != nil {
+		return false, false
+	}
+
+	// Detect resolution from resolution field or size field
+	res := req.Resolution
+	if res == "" {
+		res = req.Size
+	}
+	if strings.Contains(res, "1080") {
+		highRes = true
+	}
+
+	// Detect video input from input_reference or content array
+	if req.InputReference != nil && req.InputReference.VideoURL != "" {
+		hasVideo = true
+	}
+	for _, item := range req.Content {
+		if item.Type == "video_url" {
+			hasVideo = true
+			break
+		}
+	}
+
+	return highRes, hasVideo
 }

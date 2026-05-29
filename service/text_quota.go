@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 
@@ -343,6 +344,23 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 			tieredBillingApplied = true
 			tieredResult = tieredRes
 			summary.Quota = composeTieredTextQuota(relayInfo, summary, tieredQuota, tieredRes)
+		}
+	}
+
+	// Video generation billing: override quota using completion_tokens and resolution-based pricing
+	if billing_setting.GetBillingMode(summary.ModelName) == billing_setting.BillingModeVideoGen {
+		cfg := billing_setting.GetVideoGenPrice(summary.ModelName)
+		if cfg != nil && originUsage != nil && originUsage.CompletionTokens > 0 {
+			price := cfg.Pick(relayInfo.PriceData.VideoGenHighRes, relayInfo.PriceData.VideoGenHasVideo)
+			groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
+			dCompletion := decimal.NewFromInt(int64(originUsage.CompletionTokens))
+			dPrice := decimal.NewFromFloat(price)
+			dGroupRatio := decimal.NewFromFloat(groupRatio)
+			quota := dCompletion.Mul(dPrice).Mul(dGroupRatio)
+			summary.Quota = int(quota.Round(0).IntPart())
+			if summary.Quota < 1 {
+				summary.Quota = 1
+			}
 		}
 	}
 

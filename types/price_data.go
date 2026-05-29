@@ -25,6 +25,11 @@ type PriceData struct {
 	Quota                int // 按次计费的最终额度（MJ / Task）
 	QuotaToPreConsume    int // 按量计费的预消耗额度
 	GroupRatioInfo       GroupRatioInfo
+	// VideoGenHighRes indicates the request targets 1080p (true) or 720p/480p (false).
+	// VideoGenHasVideo indicates the request includes a video input reference.
+	// Used by video_gen billing mode for post-consume settlement.
+	VideoGenHighRes  bool
+	VideoGenHasVideo bool
 }
 
 func (p *PriceData) AddOtherRatio(key string, ratio float64) {

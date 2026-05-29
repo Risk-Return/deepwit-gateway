@@ -125,6 +125,7 @@ const filterBySelectedValues = (
 const getModeLabel = (mode?: string) => {
   if (mode === 'per-request') return 'Per-request'
   if (mode === 'tiered_expr') return 'Expression'
+  if (mode === 'video_gen') return 'Video Gen'
   return 'Per-token'
 }
 

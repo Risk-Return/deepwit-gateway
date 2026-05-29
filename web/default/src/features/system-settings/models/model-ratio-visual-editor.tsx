@@ -357,6 +357,15 @@ export const ModelRatioVisualEditor = memo(
           }
         }
 
+        if (modeForModel === 'video_gen') {
+          return {
+            name,
+            billingMode: 'video_gen',
+            ratio,
+            hasConflict: false,
+          }
+        }
+
         return {
           name,
           price,
@@ -400,17 +409,19 @@ export const ModelRatioVisualEditor = memo(
           (acc, model) => {
             const mode =
               model.billingMode === 'per-request' ||
-              model.billingMode === 'tiered_expr'
+              model.billingMode === 'tiered_expr' ||
+              model.billingMode === 'video_gen'
                 ? model.billingMode
                 : 'per-token'
-            acc[mode] += 1
+            acc[mode] = (acc[mode] || 0) + 1
             return acc
           },
           {
             'per-token': 0,
             'per-request': 0,
             tiered_expr: 0,
-          } as Record<'per-token' | 'per-request' | 'tiered_expr', number>
+            video_gen: 0,
+          } as Record<string, number>
         ),
       [models]
     )
@@ -598,6 +609,13 @@ export const ModelRatioVisualEditor = memo(
                 <StatusBadge
                   label={t('Tiered')}
                   variant='info'
+                  copyable={false}
+                />
+              )}
+              {row.original.billingMode === 'video_gen' && (
+                <StatusBadge
+                  label={t('Video')}
+                  variant='secondary'
                   copyable={false}
                 />
               )}
@@ -926,7 +944,12 @@ export const ModelRatioVisualEditor = memo(
                     {
                       label: 'Expression',
                       value: 'tiered_expr',
-                      count: modeCounts.tiered_expr,
+                      count: modeCounts['tiered_expr'],
+                    },
+                    {
+                      label: 'Video Gen',
+                      value: 'video_gen',
+                      count: modeCounts['video_gen'],
                     },
                   ],
                 },

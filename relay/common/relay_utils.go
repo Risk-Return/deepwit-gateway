@@ -23,6 +23,11 @@ type HasImage interface {
 }
 
 func GetFullRequestURL(baseURL string, requestURL string, channelType int) string {
+	// Avoid duplicate /v1/v1 prefix when base URL already includes /v1
+	if strings.HasSuffix(baseURL, "/v1") && strings.HasPrefix(requestURL, "/v1/") {
+		baseURL = strings.TrimSuffix(baseURL, "/v1")
+	}
+
 	fullRequestURL := fmt.Sprintf("%s%s", baseURL, requestURL)
 
 	if strings.HasPrefix(baseURL, "https://gateway.ai.cloudflare.com") {

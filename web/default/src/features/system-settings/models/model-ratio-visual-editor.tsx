@@ -96,6 +96,10 @@ type ModelRow = {
   billingExpr?: string
   requestRuleExpr?: string
   hasConflict: boolean
+  lowResNoVideo?: string
+  lowResWithVideo?: string
+  highResNoVideo?: string
+  highResWithVideo?: string
 }
 
 const STORAGE_KEY = 'model-ratio-column-visibility'
@@ -150,6 +154,16 @@ const getPriceSummary = (row: ModelRow, t: (key: string) => string) => {
   }
   if (row.billingMode === 'per-request') {
     return row.price ? `$${row.price} / ${t('request')}` : t('Unset price')
+  }
+  if (row.billingMode === 'video_gen') {
+    const prices = [
+      row.lowResNoVideo,
+      row.lowResWithVideo,
+      row.highResNoVideo,
+      row.highResWithVideo,
+    ].filter(Boolean)
+    if (prices.length === 0) return t('Unset video gen price')
+    return `${t('Video')} · ${prices.length} ${t('variants')}`
   }
 
   const inputPrice = ratioToPrice(row.ratio)
@@ -308,6 +322,10 @@ export const ModelRatioVisualEditor = memo(
           context: 'billing expression',
         }
       )
+      const videoGenMap = safeJsonParse<Record<string, Record<string, number>>>(
+        videoGenPricing,
+        { fallback: {}, context: 'video gen pricing' }
+      )
 
       const modelNames = new Set([
         ...Object.keys(priceMap),
@@ -358,11 +376,16 @@ export const ModelRatioVisualEditor = memo(
         }
 
         if (modeForModel === 'video_gen') {
+          const vgCfg = videoGenMap[name] || {}
           return {
             name,
             billingMode: 'video_gen',
             ratio,
             hasConflict: false,
+            lowResNoVideo: vgCfg.low_res_no_video?.toString() || '',
+            lowResWithVideo: vgCfg.low_res_with_video?.toString() || '',
+            highResNoVideo: vgCfg.high_res_no_video?.toString() || '',
+            highResWithVideo: vgCfg.high_res_with_video?.toString() || '',
           }
         }
 
@@ -401,6 +424,7 @@ export const ModelRatioVisualEditor = memo(
       audioCompletionRatio,
       billingMode,
       billingExpr,
+      videoGenPricing,
     ])
 
     const modeCounts = useMemo(
@@ -441,11 +465,17 @@ export const ModelRatioVisualEditor = memo(
           billingMode:
             model.billingMode === 'tiered_expr'
               ? 'tiered_expr'
-              : model.price && model.price !== ''
-                ? 'per-request'
-                : 'per-token',
+              : model.billingMode === 'video_gen'
+                ? 'video_gen'
+                : model.price && model.price !== ''
+                  ? 'per-request'
+                  : 'per-token',
           billingExpr: model.billingExpr,
           requestRuleExpr: model.requestRuleExpr,
+          lowResNoVideo: model.lowResNoVideo,
+          lowResWithVideo: model.lowResWithVideo,
+          highResNoVideo: model.highResNoVideo,
+          highResWithVideo: model.highResWithVideo,
         })
         setEditorOpen(true)
         if (isMobile) setSheetOpen(true)

@@ -39,3 +39,5 @@ new-api
 logs/
 .env.bak
 server.log
+example.html
+seedance2_*.md

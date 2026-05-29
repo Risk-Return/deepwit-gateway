@@ -134,6 +134,17 @@ export const CHANNEL_TYPE_CONFIGS: Record<number, ChannelTypeConfig> = {
       baseUrl: 'Default: https://api.replicate.com',
     },
   },
+  58: {
+    id: 58,
+    name: CHANNEL_TYPES[58],
+    icon: 'openai',
+    defaultBaseUrl: 'https://hk.hboom.ai/v1',
+    hints: {
+      key: 'Hboom API Key',
+      models: 'Hboom model names',
+      baseUrl: 'Default: https://hk.hboom.ai/v1',
+    },
+  },
 }
 
 /**

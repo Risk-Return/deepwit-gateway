@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 
 export interface DocSection {
   id: string
@@ -10,7 +11,8 @@ export const SECTIONS: DocSection[] = [
   { id: 'overview', labelEn: 'Overview', labelZh: '概览' },
   { id: 'quick-start', labelEn: 'Quick Start', labelZh: '快速开始' },
   { id: 'api-keys', labelEn: 'API Keys & Auth', labelZh: 'API 密钥与认证' },
-  { id: 'api-usage', labelEn: 'OpenAI-Compatible API', labelZh: 'OpenAI 兼容 API' },
+  { id: 'api-usage', labelEn: 'Chat API', labelZh: '对话 API' },
+  { id: 'video-gen', labelEn: 'Video Generation', labelZh: '视频生成' },
   { id: 'code-agents', labelEn: 'Code Agent Integration', labelZh: '代码助手集成' },
   { id: 'model-setup', labelEn: 'Model Setup (Admin)', labelZh: '模型配置（管理员）' },
   { id: 'faq', labelEn: 'FAQ', labelZh: '常见问题' },
@@ -94,11 +96,35 @@ function Step(props: { num: number; title: string; children: ReactNode }) {
 
 function BulletList(props: { items: string[] }) {
   return (
-    <ul className='space-y-1 list-disc pl-5'>
+    <ul className='space-y-1 list-disc pl-5 max-w-[65ch]'>
       {props.items.map((item, i) => (
         <li key={i}>{item}</li>
       ))}
     </ul>
+  )
+}
+
+function CollapsibleSub(props: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className='border border-border/40 rounded-lg mt-6'>
+      <button
+        type='button'
+        onClick={() => setOpen(!open)}
+        className='w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent/30 rounded-lg transition-colors'
+      >
+        <span className='text-sm font-medium text-foreground'>
+          {open ? '▾' : '▸'} {props.title}
+        </span>
+      </button>
+      {open && (
+        <div className='px-4 pb-4 border-t border-border/30'>
+          <div className='space-y-4 pt-4'>
+            {props.children}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -154,7 +180,7 @@ export function DocsEn() {
         </P>
       </Section>
 
-      <Section id='api-usage' title='OpenAI-Compatible API'>
+      <Section id='api-usage' title='Chat API'>
         <P className='mb-4'>
           The gateway is fully compatible with the OpenAI API format. Any OpenAI SDK works by changing
           the base URL to <InlineCode>{API_BASE}</InlineCode>.
@@ -206,8 +232,213 @@ for await (const chunk of stream) {
             <tr><Td><InlineCode>POST /v1/images/generations</InlineCode></Td><Td>Image generation</Td></tr>
             <tr><Td><InlineCode>POST /v1/audio/transcriptions</InlineCode></Td><Td>Audio transcription</Td></tr>
             <tr><Td><InlineCode>POST /v1/audio/speech</InlineCode></Td><Td>Text-to-speech</Td></tr>
+            <tr><Td><InlineCode>POST /v1/videos</InlineCode></Td><Td>Video generation (async)</Td></tr>
           </tbody>
         </Table>
+      </Section>
+
+      <Section id='video-gen' title='Video Generation'>
+        <P className='mb-4'>
+          The video generation API is <strong>asynchronous</strong>. Create a task first,
+          then poll for status and download the result when complete.
+        </P>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>Endpoints</h3>
+        <BulletList items={[
+          `POST ${API_BASE}/videos — Create a video generation task`,
+          `GET ${API_BASE}/videos/{'{video_id}'} — Query task status and progress`,
+          `GET ${API_BASE}/videos/{'{video_id}'}/content — Download the generated video`,
+        ]} />
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>Request Fields</h3>
+        <Table>
+          <thead><tr><Th>Field</Th><Th>Required</Th><Th>Description</Th></tr></thead>
+          <tbody>
+            <tr><Td><InlineCode>prompt</InlineCode></Td><Td>Yes</Td><Td>Video generation prompt</Td></tr>
+            <tr><Td><InlineCode>model</InlineCode></Td><Td>No</Td><Td>Model name, e.g. sora-2, sora-2-pro (default: sora-2)</Td></tr>
+            <tr><Td><InlineCode>seconds</InlineCode></Td><Td>No</Td><Td>Duration: 4, 8, or 12 (default: 4)</Td></tr>
+            <tr><Td><InlineCode>size</InlineCode></Td><Td>No</Td><Td>Resolution: 720x1280, 1280x720, 1024x1792, 1792x1024 (default: 720x1280)</Td></tr>
+          </tbody>
+        </Table>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>cURL Example</h3>
+        <CodeBlock lang='bash'>{`curl ${API_BASE}/videos \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  -F "model=sora-2" \\
+  -F "prompt=A calico cat playing a piano on stage" \\
+  -F "seconds=8" \\
+  -F "size=1280x720"`}</CodeBlock>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>Node.js Example</h3>
+        <CodeBlock lang='javascript'>{`import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-YOUR_API_KEY",
+  baseURL: "${API_BASE}",
+});
+
+const video = await client.videos.create({
+  model: "sora-2",
+  prompt: "A calico cat playing a piano on stage",
+  seconds: "8",
+  size: "1280x720",
+});
+
+console.log(video);`}</CodeBlock>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>Task Status</h3>
+        <Table>
+          <thead><tr><Th>Status</Th><Th>Description</Th></tr></thead>
+          <tbody>
+            <tr><Td><InlineCode>queued</InlineCode></Td><Td>Task is queued, waiting to process</Td></tr>
+            <tr><Td><InlineCode>in_progress</InlineCode></Td><Td>Video is being generated</Td></tr>
+            <tr><Td><InlineCode>completed</InlineCode></Td><Td>Generation complete, ready to download</Td></tr>
+            <tr><Td><InlineCode>failed</InlineCode></Td><Td>Generation failed, check error field</Td></tr>
+          </tbody>
+        </Table>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>Download Video</h3>
+        <P>Once status is <InlineCode>completed</InlineCode>, download the video file:</P>
+        <CodeBlock lang='bash'>{`curl ${API_BASE}/videos/{video_id}/content \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  --output video.mp4`}</CodeBlock>
+        <P className='mt-3'>
+          Optional variants: add <InlineCode>?variant=thumbnail</InlineCode> for a thumbnail image.
+        </P>
+
+        <CollapsibleSub title='Seedance 2.0 (Doubao Video Generation)'>
+          <P>
+            Seedance 2.0 is a multimodal video generation model supporting text-to-video, image-to-video,
+            video-to-video, and audio-driven generation. Use the unified gateway <InlineCode>POST /v1/videos</InlineCode> endpoint
+            with Seedance-specific parameters below.
+          </P>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>1. Create Video Task</h4>
+          <P>
+            Same as the general <InlineCode>POST {API_BASE}/videos</InlineCode> endpoint above.
+            Key Seedance-specific parameters:
+          </P>
+          <Table>
+            <thead><tr><Th>Field</Th><Th>Required</Th><Th>Description</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>model</InlineCode></Td><Td>Yes</Td><Td>Model ID, e.g. doubao-seedance-2-0-250828</Td></tr>
+              <tr><Td><InlineCode>content</InlineCode></Td><Td>Yes</Td><Td>Array of text, image_url, video_url, audio_url objects</Td></tr>
+              <tr><Td><InlineCode>resolution</InlineCode></Td><Td>No</Td><Td>480p, 720p, 1080p (default: 720p)</Td></tr>
+              <tr><Td><InlineCode>ratio</InlineCode></Td><Td>No</Td><Td>16:9, 4:3, 1:1, 3:4, 9:16, 21:9, adaptive</Td></tr>
+              <tr><Td><InlineCode>duration</InlineCode></Td><Td>No</Td><Td>4-15 seconds, or -1 for auto (default: 5)</Td></tr>
+              <tr><Td><InlineCode>generate_audio</InlineCode></Td><Td>No</Td><Td>Generate synchronized audio (default: true)</Td></tr>
+              <tr><Td><InlineCode>callback_url</InlineCode></Td><Td>No</Td><Td>Webhook URL for task status notifications</Td></tr>
+              <tr><Td><InlineCode>priority</InlineCode></Td><Td>No</Td><Td>Queue priority 0-9 (default: 0)</Td></tr>
+            </tbody>
+          </Table>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>cURL - Text to Video</h4>
+          <CodeBlock lang='bash'>{`curl ${API_BASE}/videos \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  -F "model=doubao-seedance-2-0-250828" \\
+  -F "prompt=A cat playing piano on stage" \\
+  -F "resolution=720p" \\
+  -F "ratio=16:9" \\
+  -F "duration=5"`}</CodeBlock>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>cURL - Image + Text to Video</h4>
+          <CodeBlock lang='bash'>{`curl ${API_BASE}/videos \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  -F "model=doubao-seedance-2-0-250828" \\
+  -F "prompt=Make this person dance" \\
+  -F "input_reference=@photo.jpg" \\
+  -F "resolution=720p" \\
+  -F "duration=5" \\
+  -F "generate_audio=true"`}</CodeBlock>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>2. Query / Callback Response</h4>
+          <P>
+            Use the gateway endpoint <InlineCode>GET {API_BASE}/videos/{'{video_id}'}</InlineCode> to query
+            task status and <InlineCode>GET {API_BASE}/videos/{'{video_id}'}/content</InlineCode> to download.
+            If <InlineCode>callback_url</InlineCode> was set on creation, the POST callback body
+            has the same structure as the query response below.
+          </P>
+          <Table>
+            <thead><tr><Th>Status</Th><Th>Description</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>queued</InlineCode></Td><Td>Task is in queue</Td></tr>
+              <tr><Td><InlineCode>running</InlineCode></Td><Td>Video is being generated</Td></tr>
+              <tr><Td><InlineCode>succeeded</InlineCode></Td><Td>Complete, video_url in content field</Td></tr>
+              <tr><Td><InlineCode>failed</InlineCode></Td><Td>Failed, check error.code and error.message</Td></tr>
+              <tr><Td><InlineCode>cancelled</InlineCode></Td><Td>Task was cancelled</Td></tr>
+              <tr><Td><InlineCode>expired</InlineCode></Td><Td>Task timed out</Td></tr>
+            </tbody>
+          </Table>
+          <P className='mt-2'>
+            Recommended polling interval: 10-20 seconds. Video URL expires in 24 hours.
+            If <InlineCode>callback_url</InlineCode> was set on creation, the POST callback body
+            has the same structure as the query response.
+          </P>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>Response Fields (on succeeded)</h4>
+          <Table>
+            <thead><tr><Th>Field</Th><Th>Description</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>id</InlineCode></Td><Td>Task ID</Td></tr>
+              <tr><Td><InlineCode>model</InlineCode></Td><Td>Model name and version used</Td></tr>
+              <tr><Td><InlineCode>status</InlineCode></Td><Td>Task status string</Td></tr>
+              <tr><Td><InlineCode>content.video_url</InlineCode></Td><Td>Downloadable MP4 video URL (expires in 24h)</Td></tr>
+              <tr><Td><InlineCode>content.last_frame_url</InlineCode></Td><Td>Last frame PNG image URL (only if return_last_frame=true was set)</Td></tr>
+              <tr><Td><InlineCode>resolution</InlineCode></Td><Td>Output resolution (480p/720p/1080p)</Td></tr>
+              <tr><Td><InlineCode>ratio</InlineCode></Td><Td>Output aspect ratio</Td></tr>
+              <tr><Td><InlineCode>duration</InlineCode></Td><Td>Output duration in seconds</Td></tr>
+              <tr><Td><InlineCode>seed</InlineCode></Td><Td>Seed value used for generation</Td></tr>
+              <tr><Td><InlineCode>generate_audio</InlineCode></Td><Td>Whether audio was generated (Seedance 2.0/1.5)</Td></tr>
+              <tr><Td><InlineCode>created_at</InlineCode></Td><Td>Unix timestamp (seconds) when task was created</Td></tr>
+              <tr><Td><InlineCode>updated_at</InlineCode></Td><Td>Unix timestamp (seconds) of last status change</Td></tr>
+              <tr><Td><InlineCode>error.code</InlineCode></Td><Td>Error code (on failed)</Td></tr>
+              <tr><Td><InlineCode>error.message</InlineCode></Td><Td>Error description (on failed)</Td></tr>
+            </tbody>
+          </Table>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>Billing / Token Usage</h4>
+          <P>
+            The <InlineCode>usage</InlineCode> object in the response contains token data for cost calculation:
+          </P>
+          <Table>
+            <thead><tr><Th>Field</Th><Th>Description</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>usage.completion_tokens</InlineCode></Td><Td>Tokens consumed for video generation (basis for billing)</Td></tr>
+              <tr><Td><InlineCode>usage.total_tokens</InlineCode></Td><Td>Total tokens (= completion_tokens, input is always 0 for video)</Td></tr>
+              <tr><Td><InlineCode>usage.tool_usage.web_search</InlineCode></Td><Td>Web search call count (0 if not used, only when tools enabled)</Td></tr>
+            </tbody>
+          </Table>
+          <P className='mt-2'>
+            Seedance 2.0 has a minimum token consumption floor — if actual tokens fall below the minimum,
+            <InlineCode>completion_tokens</InlineCode> reports the minimum and billing is based on that floor.
+          </P>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>cURL - Query Status</h4>
+          <CodeBlock lang='bash'>{`curl ${API_BASE}/videos/{video_id} \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY"`}</CodeBlock>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>Response Example (succeeded)</h4>
+          <CodeBlock lang='json'>{`{
+  "id": "cgt-20250331175019-68d9t",
+  "model": "doubao-seedance-2-0-250828",
+  "status": "succeeded",
+  "content": {
+    "video_url": "https://.../output.mp4"
+  },
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "seed": 42,
+  "generate_audio": true,
+  "created_at": 1712697600,
+  "updated_at": 1712697815,
+  "usage": {
+    "completion_tokens": 12500,
+    "total_tokens": 12500
+  }
+}`}</CodeBlock>
+
+        </CollapsibleSub>
       </Section>
 
       <Section id='code-agents' title='Code Agent Integration'>
@@ -358,7 +589,7 @@ export function DocsZh() {
         </P>
       </Section>
 
-      <Section id='api-usage' title='OpenAI 兼容 API'>
+      <Section id='api-usage' title='对话 API'>
         <P className='mb-4'>
           网关完全兼容 OpenAI API 格式。任何 OpenAI SDK 只需将 base URL 改为
           <InlineCode>{API_BASE}</InlineCode> 即可使用。
@@ -410,8 +641,211 @@ for await (const chunk of stream) {
             <tr><Td><InlineCode>POST /v1/images/generations</InlineCode></Td><Td>图片生成</Td></tr>
             <tr><Td><InlineCode>POST /v1/audio/transcriptions</InlineCode></Td><Td>语音转文字</Td></tr>
             <tr><Td><InlineCode>POST /v1/audio/speech</InlineCode></Td><Td>文字转语音</Td></tr>
+            <tr><Td><InlineCode>POST /v1/videos</InlineCode></Td><Td>视频生成（异步）</Td></tr>
           </tbody>
         </Table>
+      </Section>
+
+      <Section id='video-gen' title='视频生成'>
+        <P className='mb-4'>
+          视频生成接口为 <strong>异步</strong> 模式。先创建任务，再轮询进度，完成后下载视频文件。
+        </P>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>接口地址</h3>
+        <BulletList items={[
+          `POST ${API_BASE}/videos — 创建视频生成任务`,
+          `GET ${API_BASE}/videos/{'{video_id}'} — 查询任务状态和进度`,
+          `GET ${API_BASE}/videos/{'{video_id}'}/content — 下载生成的视频`,
+        ]} />
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>请求参数</h3>
+        <Table>
+          <thead><tr><Th>参数</Th><Th>必填</Th><Th>说明</Th></tr></thead>
+          <tbody>
+            <tr><Td><InlineCode>prompt</InlineCode></Td><Td>是</Td><Td>视频生成提示词</Td></tr>
+            <tr><Td><InlineCode>model</InlineCode></Td><Td>否</Td><Td>视频模型，常用 sora-2 或 sora-2-pro（默认 sora-2）</Td></tr>
+            <tr><Td><InlineCode>seconds</InlineCode></Td><Td>否</Td><Td>视频时长：4、8、12（默认 4）</Td></tr>
+            <tr><Td><InlineCode>size</InlineCode></Td><Td>否</Td><Td>分辨率：720x1280、1280x720、1024x1792、1792x1024（默认 720x1280）</Td></tr>
+          </tbody>
+        </Table>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>cURL 示例</h3>
+        <CodeBlock lang='bash'>{`curl ${API_BASE}/videos \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  -F "model=sora-2" \\
+  -F "prompt=A calico cat playing a piano on stage" \\
+  -F "seconds=8" \\
+  -F "size=1280x720"`}</CodeBlock>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>Node.js 示例</h3>
+        <CodeBlock lang='javascript'>{`import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-YOUR_API_KEY",
+  baseURL: "${API_BASE}",
+});
+
+const video = await client.videos.create({
+  model: "sora-2",
+  prompt: "A calico cat playing a piano on stage",
+  seconds: "8",
+  size: "1280x720",
+});
+
+console.log(video);`}</CodeBlock>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>任务状态</h3>
+        <Table>
+          <thead><tr><Th>状态</Th><Th>说明</Th></tr></thead>
+          <tbody>
+            <tr><Td><InlineCode>queued</InlineCode></Td><Td>任务排队中，等待处理</Td></tr>
+            <tr><Td><InlineCode>in_progress</InlineCode></Td><Td>视频生成中</Td></tr>
+            <tr><Td><InlineCode>completed</InlineCode></Td><Td>生成完成，可下载</Td></tr>
+            <tr><Td><InlineCode>failed</InlineCode></Td><Td>生成失败，查看 error 字段</Td></tr>
+          </tbody>
+        </Table>
+
+        <h3 className='text-base font-semibold text-foreground mt-6 mb-3'>下载视频</h3>
+        <P>任务状态为 <InlineCode>completed</InlineCode> 后即可下载：</P>
+        <CodeBlock lang='bash'>{`curl ${API_BASE}/videos/{video_id}/content \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  --output video.mp4`}</CodeBlock>
+        <P className='mt-3'>
+          可选参数：添加 <InlineCode>?variant=thumbnail</InlineCode> 可下载缩略图。
+        </P>
+
+        <CollapsibleSub title='Seedance 2.0（豆包视频生成）'>
+          <P>
+            Seedance 2.0 是火山引擎方舟平台的多模态视频生成模型，支持文生视频、图生视频、
+            视频生视频和音频驱动生成。使用网关统一的 <InlineCode>POST /v1/videos</InlineCode> 端点，
+            传入 Seedance 专属参数即可。
+          </P>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>1. 创建视频任务</h4>
+          <P>
+            与上方通用视频接口 <InlineCode>POST {API_BASE}/videos</InlineCode> 相同，Seedance 专属参数如下：
+          </P>
+          <Table>
+            <thead><tr><Th>参数</Th><Th>必填</Th><Th>说明</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>model</InlineCode></Td><Td>是</Td><Td>模型 ID，如 doubao-seedance-2-0-250828</Td></tr>
+              <tr><Td><InlineCode>content</InlineCode></Td><Td>是</Td><Td>数组，可包含 text、image_url、video_url、audio_url 对象</Td></tr>
+              <tr><Td><InlineCode>resolution</InlineCode></Td><Td>否</Td><Td>480p、720p、1080p（默认 720p）</Td></tr>
+              <tr><Td><InlineCode>ratio</InlineCode></Td><Td>否</Td><Td>16:9、4:3、1:1、3:4、9:16、21:9、adaptive</Td></tr>
+              <tr><Td><InlineCode>duration</InlineCode></Td><Td>否</Td><Td>4-15 秒，或设为 -1 自动选择（默认 5）</Td></tr>
+              <tr><Td><InlineCode>generate_audio</InlineCode></Td><Td>否</Td><Td>是否生成同步音频（默认 true）</Td></tr>
+              <tr><Td><InlineCode>callback_url</InlineCode></Td><Td>否</Td><Td>任务状态变化时的回调地址</Td></tr>
+              <tr><Td><InlineCode>priority</InlineCode></Td><Td>否</Td><Td>队列优先级 0-9（默认 0，数值越大越优先）</Td></tr>
+            </tbody>
+          </Table>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>cURL - 文生视频</h4>
+          <CodeBlock lang='bash'>{`curl ${API_BASE}/videos \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  -F "model=doubao-seedance-2-0-250828" \\
+  -F "prompt=一只猫在舞台上弹钢琴" \\
+  -F "resolution=720p" \\
+  -F "ratio=16:9" \\
+  -F "duration=5"`}</CodeBlock>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>cURL - 图+文生视频</h4>
+          <CodeBlock lang='bash'>{`curl ${API_BASE}/videos \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \\
+  -F "model=doubao-seedance-2-0-250828" \\
+  -F "prompt=让这个人跳起舞来" \\
+  -F "input_reference=@photo.jpg" \\
+  -F "resolution=720p" \\
+  -F "duration=5" \\
+  -F "generate_audio=true"`}</CodeBlock>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>2. 查询状态与回调响应</h4>
+          <P>
+            使用网关接口 <InlineCode>GET {API_BASE}/videos/{'{video_id}'}</InlineCode> 查询任务状态，
+            <InlineCode>GET {API_BASE}/videos/{'{video_id}'}/content</InlineCode> 下载视频。
+            若创建时配置了 <InlineCode>callback_url</InlineCode>，任务状态变化时方舟会向该地址发送 POST 请求，
+            回调请求体结构与查询接口返回体一致。
+          </P>
+          <Table>
+            <thead><tr><Th>状态</Th><Th>说明</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>queued</InlineCode></Td><Td>排队中</Td></tr>
+              <tr><Td><InlineCode>running</InlineCode></Td><Td>生成中</Td></tr>
+              <tr><Td><InlineCode>succeeded</InlineCode></Td><Td>完成，content 中包含 video_url</Td></tr>
+              <tr><Td><InlineCode>failed</InlineCode></Td><Td>失败，查看 error.code 和 error.message</Td></tr>
+              <tr><Td><InlineCode>cancelled</InlineCode></Td><Td>已取消</Td></tr>
+              <tr><Td><InlineCode>expired</InlineCode></Td><Td>超时</Td></tr>
+            </tbody>
+          </Table>
+          <P className='mt-2'>
+            建议轮询间隔：10-20 秒。视频 URL 有效期为 24 小时，请及时下载。
+            若创建时配置了 <InlineCode>callback_url</InlineCode>，任务状态变化时方舟会向该地址发送 POST 请求，
+            回调请求体结构与查询接口返回体一致。
+          </P>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>响应字段（succeeded 状态）</h4>
+          <Table>
+            <thead><tr><Th>字段</Th><Th>说明</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>id</InlineCode></Td><Td>任务 ID</Td></tr>
+              <tr><Td><InlineCode>model</InlineCode></Td><Td>使用的模型名称和版本</Td></tr>
+              <tr><Td><InlineCode>status</InlineCode></Td><Td>任务状态</Td></tr>
+              <tr><Td><InlineCode>content.video_url</InlineCode></Td><Td>可下载的 MP4 视频 URL（24 小时有效）</Td></tr>
+              <tr><Td><InlineCode>content.last_frame_url</InlineCode></Td><Td>尾帧图像 PNG URL（仅 return_last_frame=true 时有）</Td></tr>
+              <tr><Td><InlineCode>resolution</InlineCode></Td><Td>输出分辨率（480p/720p/1080p）</Td></tr>
+              <tr><Td><InlineCode>ratio</InlineCode></Td><Td>输出宽高比</Td></tr>
+              <tr><Td><InlineCode>duration</InlineCode></Td><Td>输出视频时长（秒）</Td></tr>
+              <tr><Td><InlineCode>seed</InlineCode></Td><Td>生成所使用的种子值</Td></tr>
+              <tr><Td><InlineCode>generate_audio</InlineCode></Td><Td>是否生成了音频（Seedance 2.0/1.5）</Td></tr>
+              <tr><Td><InlineCode>created_at</InlineCode></Td><Td>任务创建时间 Unix 时间戳（秒）</Td></tr>
+              <tr><Td><InlineCode>updated_at</InlineCode></Td><Td>状态最后一次更新的 Unix 时间戳（秒）</Td></tr>
+              <tr><Td><InlineCode>error.code</InlineCode></Td><Td>错误码（失败时返回）</Td></tr>
+              <tr><Td><InlineCode>error.message</InlineCode></Td><Td>错误描述（失败时返回）</Td></tr>
+            </tbody>
+          </Table>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>计费 / Token 用量</h4>
+          <P>
+            响应中的 <InlineCode>usage</InlineCode> 对象包含计费所需的 Token 数据：
+          </P>
+          <Table>
+            <thead><tr><Th>字段</Th><Th>说明</Th></tr></thead>
+            <tbody>
+              <tr><Td><InlineCode>usage.completion_tokens</InlineCode></Td><Td>视频生成消耗的 Token 数（计费依据）</Td></tr>
+              <tr><Td><InlineCode>usage.total_tokens</InlineCode></Td><Td>总 Token 数（= completion_tokens，视频模型输入始终为 0）</Td></tr>
+              <tr><Td><InlineCode>usage.tool_usage.web_search</InlineCode></Td><Td>联网搜索调用次数（未使用时为 0，仅开启 tools 时返回）</Td></tr>
+            </tbody>
+          </Table>
+          <P className='mt-2'>
+            Seedance 2.0 系列设有最低 Token 用量限制，若实际用量低于最低值，
+            <InlineCode>completion_tokens</InlineCode> 将返回最低值并按此计费。
+          </P>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>cURL - 查询状态</h4>
+          <CodeBlock lang='bash'>{`curl ${API_BASE}/videos/{video_id} \\
+  -H "Authorization: Bearer sk-YOUR_API_KEY"`}</CodeBlock>
+
+          <h4 className='text-sm font-semibold text-foreground mt-4 mb-2'>响应示例（succeeded）</h4>
+          <CodeBlock lang='json'>{`{
+  "id": "cgt-20250331175019-68d9t",
+  "model": "doubao-seedance-2-0-250828",
+  "status": "succeeded",
+  "content": {
+    "video_url": "https://.../output.mp4"
+  },
+  "resolution": "720p",
+  "ratio": "16:9",
+  "duration": 5,
+  "seed": 42,
+  "generate_audio": true,
+  "created_at": 1712697600,
+  "updated_at": 1712697815,
+  "usage": {
+    "completion_tokens": 12500,
+    "total_tokens": 12500
+  }
+}`}</CodeBlock>
+
+        </CollapsibleSub>
       </Section>
 
       <Section id='code-agents' title='代码助手集成'>

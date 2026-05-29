@@ -305,7 +305,11 @@ function buildPreviewRows(
   promptPrice: string,
   lanePrices: Record<LaneKey, string>,
   laneEnabled: Record<LaneKey, boolean>,
-  t: (key: string) => string
+  t: (key: string) => string,
+  lowResNoVideo?: string,
+  lowResWithVideo?: string,
+  highResNoVideo?: string,
+  highResWithVideo?: string
 ): PreviewRow[] {
   if (mode === 'tiered_expr') {
     const effectiveExpr = combineBillingExpr(billingExpr, requestRuleExpr)
@@ -336,22 +340,22 @@ function buildPreviewRows(
       {
         key: 'vg_720_no_vid',
         label: t('720p/480p · No video'),
-        value: values.lowResNoVideo || t('Empty'),
+        value: lowResNoVideo || t('Empty'),
       },
       {
         key: 'vg_720_with_vid',
         label: t('720p/480p · With video'),
-        value: values.lowResWithVideo || t('Empty'),
+        value: lowResWithVideo || t('Empty'),
       },
       {
         key: 'vg_1080_no_vid',
         label: t('1080p · No video'),
-        value: values.highResNoVideo || t('Empty'),
+        value: highResNoVideo || t('Empty'),
       },
       {
         key: 'vg_1080_with_vid',
         label: t('1080p · With video'),
-        value: values.highResWithVideo || t('Empty'),
+        value: highResWithVideo || t('Empty'),
       },
     ]
   }
@@ -679,7 +683,11 @@ export function ModelPricingEditorPanel({
         promptPrice,
         lanePrices,
         laneEnabled,
-        t
+        t,
+        lowResNoVideo,
+        lowResWithVideo,
+        highResNoVideo,
+        highResWithVideo
       ),
     [
       billingExpr,
@@ -690,6 +698,10 @@ export function ModelPricingEditorPanel({
       requestRuleExpr,
       t,
       watchedValues,
+      lowResNoVideo,
+      lowResWithVideo,
+      highResNoVideo,
+      highResWithVideo,
     ]
   )
 

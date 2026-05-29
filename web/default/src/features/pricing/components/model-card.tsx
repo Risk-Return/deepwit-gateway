@@ -63,6 +63,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const isDynamicPricing =
     props.model.billing_mode === 'tiered_expr' &&
     Boolean(props.model.billing_expr)
+  const isVideoGenPricing =
+    props.model.billing_mode === 'video_gen'
   const hasCachedPrice = isTokenBased && props.model.cache_ratio != null
   const dynamicSummary = isDynamicPricing
     ? getDynamicPricingSummary(props.model, {
@@ -138,6 +140,13 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                     {t('Dynamic Pricing')}
                   </span>
                 )
+              ) : isVideoGenPricing ? (
+                <span className='text-muted-foreground whitespace-nowrap text-xs'>
+                  {t('Video Generation')}{' '}
+                  <span className='text-foreground font-medium'>
+                    {t('per token')}
+                  </span>
+                </span>
               ) : isTokenBased ? (
                 <>
                   <span className='text-muted-foreground whitespace-nowrap'>

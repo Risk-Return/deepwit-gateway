@@ -735,6 +735,43 @@ function GroupPricingSection(props: {
   const thClass =
     'text-muted-foreground py-2 text-[10px] font-medium tracking-wider uppercase'
 
+  if (props.model.billing_mode === 'video_gen') {
+    return (
+      <section>
+        <SectionTitle>{t('Pricing by Group')}</SectionTitle>
+        <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
+        <div className='-mx-4 overflow-x-auto sm:mx-0'>
+          <Table className='text-sm'>
+            <TableHeader>
+              <TableRow className='hover:bg-transparent'>
+                <TableHead className={thClass}>{t('Group')}</TableHead>
+                <TableHead className={`${thClass} text-right`}>{t('Multiplier')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {availableGroups.map((group) => {
+                const ratio = props.groupRatio[group] || 1
+                return (
+                  <TableRow key={group}>
+                    <TableCell className='py-2.5'>
+                      <GroupBadge label={group} ratio={ratio} />
+                    </TableCell>
+                    <TableCell className='py-2.5 text-right font-mono'>
+                      ×{ratio}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
+        <p className='text-muted-foreground/40 mt-1.5 text-[10px]'>
+          {t('Video generation pricing is per completion token. Final cost = completion_tokens × price_factor × group_multiplier.')}
+        </p>
+      </section>
+    )
+  }
+
   if (isDynamicPricingModel(props.model)) {
     const dynamicTiers = getDynamicPricingTiers(props.model)
 

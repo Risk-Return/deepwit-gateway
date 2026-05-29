@@ -841,25 +841,26 @@ export const ModelRatioVisualEditor = memo(
         )
         onChange(
           'billing_setting.billing_expr',
-          JSON.stringify(billingExprMap, null, 2)
-        )
-      },
-      [
-        modelPrice,
-        modelRatio,
-        cacheRatio,
-        createCacheRatio,
-        completionRatio,
-        imageRatio,
-        audioRatio,
-        audioCompletionRatio,
-        billingMode,
-        billingExpr,
-        onChange,
-      ]
-    )
+        JSON.stringify(billingExprMap, null, 2)
+      )
+    },
+    [
+      modelPrice,
+      modelRatio,
+      cacheRatio,
+      createCacheRatio,
+      completionRatio,
+      imageRatio,
+      audioRatio,
+      audioCompletionRatio,
+      billingMode,
+      billingExpr,
+      videoGenPricing,
+      onChange,
+    ]
+  )
 
-    const handleSave = useCallback(
+  const handleSave = useCallback(
       (data: ModelRatioData) => {
         persistPricingData(data)
         setEditData(data)
